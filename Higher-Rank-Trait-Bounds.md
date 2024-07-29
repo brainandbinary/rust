@@ -167,3 +167,46 @@ In this example, `Container` holds a reference with a specific lifetime `'a`. Th
 ### Summary
 
 Higher-Rank Trait Bounds (HRTBs) enable you to write generic code that can handle references with any lifetime. They are essential for working with iterators, callbacks, and generic data structures where the exact lifetimes of references are not known in advance. Understanding and using HRTBs effectively can greatly enhance the flexibility and robustness of your Rust code.
+
+### code compare
+The provided function signature:
+
+```rust
+fn check<'a>(name: &'a str) -> impl Fn() -> &'a str {
+    move || name
+}
+```
+
+is not an example of a Higher-Rank Trait Bound (HRTB). Instead, it is a function that returns a closure, where the closure captures a reference with a specific lifetime `'a`.
+
+### Explanation
+
+In this function:
+
+- `fn check<'a>(name: &'a str)` specifies that `check` takes a reference `name` with a lifetime `'a`.
+- `-> impl Fn() -> &'a str` specifies that `check` returns an anonymous type that implements the `Fn` trait. The returned closure captures the reference `name` and returns it when called.
+
+### HRTBs vs. Your Function
+
+To illustrate the difference, let's compare with an actual HRTB example. A HRTB involves specifying that a trait must hold for all lifetimes, which is not what your function is doing. 
+
+Here's an HRTB example for comparison:
+
+```rust
+fn for_any_lifetime<F>(f: F)
+where
+    F: for<'a> Fn(&'a str),
+{
+    f("Hello, world!");
+}
+```
+
+In this example, `F` must be able to accept a reference to `str` with any lifetime `'a`.
+
+### When to Use HRTBs
+
+HRTBs are used when you need to ensure a function or trait implementation works for any possible lifetime. This is common with functions taking closures that can operate on various lifetimes or when implementing certain traits.
+
+### Conclusion
+
+The function you provided does not use a Higher-Rank Trait Bound. It returns a closure that captures a reference with a specific lifetime `'a`. HRTBs, on the other hand, are used to ensure trait implementations are valid for all lifetimes, and they involve syntax like `for<'a>`. If you have specific scenarios or questions about HRTBs, feel free to ask!
