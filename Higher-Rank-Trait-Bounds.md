@@ -60,3 +60,110 @@ In this example, `T` must implement `MyTrait` for any lifetime `'a`.
 Higher-Rank Trait Bounds are a powerful feature in Rust that allow you to write more flexible and generic code by ensuring that certain trait implementations are valid for any lifetime. They are especially useful when dealing with closures, iterators, and other scenarios where lifetimes can vary widely.
 
 If you have any specific use case or code snippet in mind, feel free to share, and I can provide a more tailored explanation or example.
+
+## Examples
+Here are more examples to further illustrate Higher-Rank Trait Bounds (HRTBs) in Rust.
+
+### Example 1: Iterator with HRTBs
+
+Let's look at how `Iterator::filter` uses HRTBs. The `filter` method on an iterator allows you to provide a closure that determines which elements should be retained:
+
+```rust
+fn filter_example() {
+    let numbers = vec![1, 2, 3, 4, 5];
+    let even_numbers: Vec<_> = numbers.iter().filter(|&&x| x % 2 == 0).collect();
+    println!("{:?}", even_numbers);
+}
+```
+
+Here, `filter` takes a closure `FnMut(&&T) -> bool` where `T` is the type of elements in the iterator. The closure can borrow its argument for any lifetime, and this is expressed with HRTBs internally in the definition of `filter`.
+
+### Example 2: Generic Functions with HRTBs
+
+Consider a function that accepts a generic closure that can operate on references of different lifetimes:
+
+```rust
+fn apply_to_str<F>(f: F)
+where
+    F: for<'a> Fn(&'a str),
+{
+    let s1 = String::from("hello");
+    let s2 = String::from("world");
+    f(&s1);
+    f(&s2);
+}
+
+fn main() {
+    apply_to_str(|s| println!("{}", s));
+}
+```
+
+In this example, the closure `f` must work for any lifetime `'a`, meaning it must accept a reference to `str` regardless of the specific lifetime.
+
+### Example 3: Trait Implementation with HRTBs
+
+Let's define a trait and implement it using HRTBs:
+
+```rust
+trait Transform {
+    fn transform<F>(&self, f: F)
+    where
+        F: for<'a> Fn(&'a str) -> String;
+}
+
+struct MyStruct {
+    data: String,
+}
+
+impl Transform for MyStruct {
+    fn transform<F>(&self, f: F)
+    where
+        F: for<'a> Fn(&'a str) -> String,
+    {
+        let result = f(&self.data);
+        println!("{}", result);
+    }
+}
+
+fn main() {
+    let my_struct = MyStruct {
+        data: String::from("hello"),
+    };
+    
+    my_struct.transform(|s| s.to_uppercase());
+}
+```
+
+In this example, the `Transform` trait has a method `transform` that takes a closure `F`. The closure must implement `Fn(&'a str) -> String` for any lifetime `'a`.
+
+### Example 4: Complex Struct with HRTBs
+
+Consider a more complex scenario where you have a struct that holds a reference, and you want to pass a closure that can work with any lifetime:
+
+```rust
+struct Container<'a> {
+    value: &'a str,
+}
+
+impl<'a> Container<'a> {
+    fn apply<F>(&self, f: F)
+    where
+        F: for<'b> Fn(&'b str),
+    {
+        f(self.value);
+    }
+}
+
+fn main() {
+    let value = String::from("hello");
+    let container = Container { value: &value };
+
+    container.apply(|s| println!("{}", s));
+}
+```
+
+In this example, `Container` holds a reference with a specific lifetime `'a`. The `apply` method takes a closure `F` that can work with references of any lifetime `'b`.
+
+### Summary
+
+Higher-Rank Trait Bounds (HRTBs) enable you to write generic code that can handle references with any lifetime. They are essential for working with iterators, callbacks, and generic data structures where the exact lifetimes of references are not known in advance. Understanding and using HRTBs effectively can greatly enhance the flexibility and robustness of your Rust code.
