@@ -186,7 +186,7 @@ async fn main() {
 3. **Task Spawning**:
    - `tokio::spawn` is used to create asynchronous tasks that run concurrently.
 
-`
+```rust
 use std::sync::{Arc, Mutex};
 use tokio::task;
 
@@ -232,10 +232,10 @@ async fn main() {
    
 }
 
-`
+```
 # Result
 
-`
+```
 johnny@johnny:~/garage/rust/rust_again$ cargo run
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
      Running `target/debug/rust_again`
@@ -249,7 +249,7 @@ johnny@johnny:~/garage/rust/rust_again$ cargo run
      Running `target/debug/rust_again`
 Final value: 362880
 
-`
+```
 
 ### Conclusion
 
