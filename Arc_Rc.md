@@ -186,6 +186,71 @@ async fn main() {
 3. **Task Spawning**:
    - `tokio::spawn` is used to create asynchronous tasks that run concurrently.
 
+`
+use std::sync::{Arc, Mutex};
+use tokio::task;
+
+#[tokio::main]
+async fn main() {
+    let data = Arc::new(Mutex::new(0)); // Create a reference-counted mutex
+
+
+    let cloned_arc = Arc::clone(&data);
+    let h_1 = task::spawn(async move {
+        
+
+        let mut num = cloned_arc.lock().unwrap(); // Acquire the lock
+        for i in 1..10 {
+            *num *= i; // Modify the shared data
+        }
+        
+    });
+
+
+    let cloned_arc_2 = Arc::clone(&data);
+    let h_2 = task::spawn(async move {
+        
+
+        let mut num = cloned_arc_2.lock().unwrap(); // Acquire the lock
+       
+            *num += 1; // Modify the shared data
+       
+    
+    });
+
+    // Await both tasks concurrently
+    let (res1, res2) = tokio::join!(h_1, h_2);
+
+    // Handle any potential errors (e.g., task panics)
+    res1.unwrap();
+    res2.unwrap();
+
+    // Print the value of data
+    let final_value = data.lock().unwrap(); // Acquire the lock to access the value
+    println!("Final value: {}", *final_value);
+
+   
+}
+
+`
+# Result
+
+`
+johnny@johnny:~/garage/rust/rust_again$ cargo run
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running `target/debug/rust_again`
+Final value: 1
+johnny@johnny:~/garage/rust/rust_again$ cargo run
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running `target/debug/rust_again`
+Final value: 1
+johnny@johnny:~/garage/rust/rust_again$ cargo run
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running `target/debug/rust_again`
+Final value: 362880
+
+`
+
 ### Conclusion
 
 Using `Arc` in combination with `Mutex` or `tokio::sync::Mutex` allows you to safely share and modify data across multiple threads or async tasks in Rust. By following these patterns, you can ensure that your data remains consistent and free from race conditions, even in highly concurrent environments.
