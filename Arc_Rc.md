@@ -185,6 +185,9 @@ async fn main() {
 
 3. **Task Spawning**:
    - `tokio::spawn` is used to create asynchronous tasks that run concurrently.
+  
+### Always clone Arc in the root context before moving/claiming ownership 
+**Always lock Mutex before accessing data**
 
 ```rust
 use std::sync::{Arc, Mutex};
