@@ -254,6 +254,89 @@ Final value: 362880
 
 ```
 
+# \\| Note:
+Look at the following code in which a mistake has been done by creating the clone of a shared arc in a thread, in which the arc is moved permanently (when a thread will be finished is unknown), the second clone of arc is invalid here.
+
+```rust
+use std::sync::{Arc, Mutex};
+use tokio::task;
+
+#[tokio::main]
+async fn main() {
+    let data = Arc::new(Mutex::new(0)); // Create a reference-counted mutex
+
+
+    
+    let h_1 = task::spawn(async move {
+        
+        let cloned_arc = Arc::clone(&data); // !!! variable data is moved here. 
+        let mut num = cloned_arc.lock().unwrap(); // Acquire the lock
+        for i in 1..10 {
+            *num *= i; // Modify the shared data
+        }
+        
+    });
+
+
+    let cloned_arc_2 = Arc::clone(&data);
+    let h_2 = task::spawn(async move {
+        
+
+        let mut num = cloned_arc_2.lock().unwrap(); // Acquire the lock
+       
+            *num += 1; // Modify the shared data
+       
+    
+    });
+
+    // Await both tasks concurrently
+    let (res1, res2) = tokio::join!(h_1, h_2);
+
+    // Handle any potential errors (e.g., task panics)
+    res1.unwrap();
+    res2.unwrap();
+
+    // Print the value of data
+    let final_value = data.lock().unwrap(); // Acquire the lock to access the value
+    println!("Final value: {}", *final_value);
+
+   
+}
+
+```
+```Compiling rust_again v0.1.0 (/home/johnny/garage/rust/rust_again)
+error[E0382]: borrow of moved value: `data`
+  --> src/main.rs:21:35
+   |
+6  |       let data = Arc::new(Mutex::new(0)); // Create a reference-counted mutex
+   |           ---- move occurs because `data` has type `Arc<std::sync::Mutex<i32>>`, which does not implement the `Copy` trait
+...
+10 |       let h_1 = task::spawn(async move {
+   |  ___________________________-
+11 | |         let cloned_arc = Arc::clone(&data);
+   | |                                      ---- variable moved due to use in coroutine
+12 | |
+13 | |         let mut num = cloned_arc.lock().unwrap(); // Acquire the lock
+...  |
+17 | |         
+18 | |     });
+   | |_____- value moved here
+...
+21 |       let cloned_arc_2 = Arc::clone(&data);
+   |                                     ^^^^^ value borrowed here after move
+   |
+help: clone the value to increment its reference count
+   |
+18 |     }.clone());
+
+```
+
+
+
+
+
+
+
 ### Conclusion
 
 Using `Arc` in combination with `Mutex` or `tokio::sync::Mutex` allows you to safely share and modify data across multiple threads or async tasks in Rust. By following these patterns, you can ensure that your data remains consistent and free from race conditions, even in highly concurrent environments.
