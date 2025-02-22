@@ -1,3 +1,9 @@
+
+#BOOK LINK
+https://danielkeep.github.io/tlborm/book/README.html
+
+
+
 Procedural macros in Rust are a powerful metaprogramming tool that allows you to generate or transform code at compile time. They operate on Rust's abstract syntax tree (AST), enabling code generation, custom derives, and more. Here's a structured guide to understanding procedural macros:
 
 ### **1. Types of Procedural Macros**
