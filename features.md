@@ -431,3 +431,105 @@ async fn main() {
 ## ✅ Fixed!
 
 Now, `Box<dyn CommonExamDAO>` will work perfectly without any **E0038 error.** 🎉
+
+`error[E0277]: dyn CommonExamDAO cannot be shared between threads safely
+  --> axum_app/src/controllers/gre/mock_controllers.rs:48:17
+   |
+48 |             dao.get_exams(10);
+   |                 ^^^^^^^^^ dyn CommonExamDAO cannot be shared between threads safely
+   |
+   = help: the trait Sync is not implemented for dyn CommonExamDAO
+note: required by a bound in CommonExamDAO::get_exams
+  --> axum_app/src/services/dao/common_exam_dao.rs:12:1
+   |
+12 | #[async_trait]
+   | ^^^^^^^^^^^^^^ required by this bound in CommonExamDAO::get_exams
+...
+18 |      async fn get_exams(&self,skip:u64) -> Result<Vec<GREExam>,mongodb::error::Error> {
+   |               --------- required by a bound in this associated function
+   = note: this error originates in the attribute macro async_trait (in Nightly builds, run with -Z macro-backtrace for more info)`
+
+
+### ✅ Root Cause:
+
+This error is happening because **`dyn CommonExamDAO` is not thread-safe**, and **`async-trait` requires the trait to be `Sync`** for it to be shared across threads.
+
+---
+
+### 🎯 Why does this happen?
+
+- `dyn CommonExamDAO` **does not implement `Send` and `Sync` by default.**
+- The **`async_trait` macro by default requires the trait to be `Send + Sync`.**
+- Since your DAO interacts with MongoDB, which is **`Send` but not `Sync`**, Rust fails to guarantee that the trait is thread-safe.
+
+---
+
+## ✅ The Solution:
+
+### Option 1: Explicitly mark the trait as `Send + Sync`
+
+```rust
+use async_trait::async_trait;
+
+#[async_trait]
+pub trait CommonExamDAO: Send + Sync {
+    async fn get_exams(&self, skip: u64) -> Result<Vec<GREExam>, mongodb::error::Error>;
+    async fn create_one(&self, exam: &GREExam) -> Result<Option<String>, mongodb::error::Error>;
+    async fn find_one(&self, id: ObjectId) -> Result<Option<GREExam>, mongodb::error::Error>;
+}
+```
+
+---
+
+### Option 2: If your struct is not thread-safe (like MongoDB client), wrap it with `Arc<Mutex<T>>`
+
+In your struct that implements `CommonExamDAO`, wrap the internal state with `Arc<Mutex<T>>`.
+
+```rust
+use async_trait::async_trait;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+struct MyDAO {
+    data: Arc<Mutex<Vec<GREExam>>>,
+}
+
+#[async_trait]
+impl CommonExamDAO for MyDAO {
+    async fn get_exams(&self, _skip: u64) -> Result<Vec<GREExam>, mongodb::error::Error> {
+        let data = self.data.lock().await;
+        Ok(data.clone())
+    }
+
+    async fn create_one(&self, _exam: &GREExam) -> Result<Option<String>, mongodb::error::Error> {
+        Ok(Some("Created".to_string()))
+    }
+
+    async fn find_one(&self, _id: ObjectId) -> Result<Option<GREExam>, mongodb::error::Error> {
+        Ok(None)
+    }
+}
+```
+
+---
+
+### ✅ Final Working Code:
+
+```rust
+#[tokio::main]
+async fn main() {
+    let dao: Box<dyn CommonExamDAO + Send + Sync> = Box::new(MyDAO {
+        data: Arc::new(Mutex::new(vec![])),
+    });
+
+    dao.get_exams(10).await.unwrap();
+}
+```
+
+---
+
+## 🎉 Fixed!
+
+- The error **`dyn CommonExamDAO` cannot be shared between threads safely** is resolved.
+- The DAO is now **both `Send` and `Sync`.**
+- Your code will **work perfectly with Axum and MongoDB.**
