@@ -290,4 +290,144 @@ Now:
 
 Let me know if you need further clarification! 🚀
 
+# [async_trait]:
 
+In Rust, **a trait cannot be made into a `dyn` trait object** if it **violates "object safety."** 
+
+---
+
+## 🎯 What is **Object Safety**?
+
+Rust **creates a virtual table (vtable)** when working with `dyn Trait`. 
+
+However, **not all trait methods can be included in this vtable**. Traits that **violate object safety rules** cannot be used as a trait object.
+
+---
+
+## 🔥 Why is your `CommonExamDAO` not object-safe?
+
+In your code, `CommonExamDAO` contains **`async` functions**, like:
+
+```rust
+pub trait CommonExamDAO {
+    async fn get_exams(&self, skip: u64) -> Result<Vec<GREExam>, mongodb::error::Error>;
+    async fn create_one(&self, exam: &GREExam) -> Result<Option<String>, mongodb::error::Error>;
+    async fn find_one(&self, id: ObjectId) -> Result<Option<GREExam>, mongodb::error::Error>;
+}
+```
+
+---
+
+### ❓ Why are `async` functions not allowed in trait objects?
+
+- `async fn` **requires a state machine** to be generated at compile time.
+- When you call an `async fn`, **Rust desugars it into a state machine** that depends on the **specific type** of the struct implementing the trait.
+- The compiler **cannot store this state machine in the vtable**, so **`async fn` is not object-safe**.
+
+---
+
+## ✅ The Solution:
+
+### Option 1: Use **`Box<dyn Future>` instead of `async fn`**
+
+Convert the `async fn` into a **`fn` that returns `Box<dyn Future>`**.
+
+```rust
+use std::future::Future;
+use std::pin::Pin;
+
+pub trait CommonExamDAO {
+    fn get_exams(
+        &self,
+        skip: u64,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<GREExam>, mongodb::error::Error>> + Send>>;
+
+    fn create_one(
+        &self,
+        exam: &GREExam,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<String>, mongodb::error::Error>> + Send>>;
+
+    fn find_one(
+        &self,
+        id: ObjectId,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<GREExam>, mongodb::error::Error>> + Send>>;
+}
+```
+
+### 🎯 Why does this work?
+- `Box<dyn Future>` is **heap allocated**, so it can store the state machine.
+- `Pin` ensures that the future is pinned and cannot be moved.
+
+---
+
+### Option 2: Use **`async-trait` crate** (More convenient)
+
+If you want to keep using `async fn`, use the **`async-trait`** crate.
+
+Add it to your `Cargo.toml`:
+
+```toml
+async-trait = "0.1"
+```
+
+---
+
+Now refactor your code:
+
+```rust
+use async_trait::async_trait;
+
+#[async_trait]
+pub trait CommonExamDAO {
+    async fn get_exams(&self, skip: u64) -> Result<Vec<GREExam>, mongodb::error::Error>;
+    async fn create_one(&self, exam: &GREExam) -> Result<Option<String>, mongodb::error::Error>;
+    async fn find_one(&self, id: ObjectId) -> Result<Option<GREExam>, mongodb::error::Error>;
+}
+```
+
+### 🎯 Why does this work?
+- The **`async-trait`** crate **rewrites the `async fn` under the hood** into `Box<dyn Future>`.
+
+---
+
+## 🎯 The final code:
+
+```rust
+use async_trait::async_trait;
+
+#[async_trait]
+pub trait CommonExamDAO {
+    async fn get_exams(&self, skip: u64) -> Result<Vec<GREExam>, mongodb::error::Error>;
+    async fn create_one(&self, exam: &GREExam) -> Result<Option<String>, mongodb::error::Error>;
+    async fn find_one(&self, id: ObjectId) -> Result<Option<GREExam>, mongodb::error::Error>;
+}
+
+struct MyDAO;
+
+#[async_trait]
+impl CommonExamDAO for MyDAO {
+    async fn get_exams(&self, _skip: u64) -> Result<Vec<GREExam>, mongodb::error::Error> {
+        Ok(vec![])
+    }
+
+    async fn create_one(&self, _exam: &GREExam) -> Result<Option<String>, mongodb::error::Error> {
+        Ok(Some("Exam created".to_string()))
+    }
+
+    async fn find_one(&self, _id: ObjectId) -> Result<Option<GREExam>, mongodb::error::Error> {
+        Ok(None)
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let dao: Box<dyn CommonExamDAO> = Box::new(MyDAO);
+    dao.get_exams(0).await.unwrap();
+}
+```
+
+---
+
+## ✅ Fixed!
+
+Now, `Box<dyn CommonExamDAO>` will work perfectly without any **E0038 error.** 🎉
