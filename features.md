@@ -218,4 +218,76 @@ fn main() {
 Let me know if you'd like more examples or need help with advanced Rust concepts! 🚀
 
 
+_______________________________________________________________________________________
+
+# 📌 **What is a Dynamically Sized Type (DST)?**
+A **Dynamically Sized Type (DST)** in Rust is a type that **does not have a known size at compile time**. This means the compiler cannot determine its exact memory footprint, making it impossible to store such a type directly in a variable **without an indirection (pointer/reference).** 
+
+---
+### 📌 **Example: `dyn Animal` as a DST**
+When you write:
+```rust
+trait Animal {
+    fn show(&self);
+}
+```
+This `Animal` trait **does not have a fixed size** because:
+- Different types implementing `Animal` (e.g., `Human`, `Cat`) may have different sizes.
+- The compiler does not know which concrete type (`Human` or `Cat`) will be used at runtime.
+
+This makes `dyn Animal` a **Dynamically Sized Type (DST)**.
+
+---
+### ❌ **Why Does This Code Fail?**
+```rust
+let s: dyn Animal = Cat {};  // ❌ Error: `dyn Animal` is a DST
+```
+- `dyn Animal` has **no known size at compile time**.
+- Rust requires that all values have a known size unless they are behind a pointer.
+
+---
+### ✅ **How to Store DSTs?**
+Since `dyn Animal` is a DST, you **must store it behind a pointer type** like:
+- `Box<dyn Animal>` (Heap allocation)
+- `&dyn Animal` (Reference)
+- `Rc<dyn Animal>` (Reference counting)
+
+#### 🔹 **Using `Box<dyn Animal>`**
+```rust
+let s: Box<dyn Animal> = Box::new(Cat {});  // ✅ Works!
+```
+Now:
+- `Box<dyn Animal>` stores the actual `Cat` object **on the heap**.
+- The `Box` itself has a known size (a pointer), which Rust can handle.
+
+---
+### 📌 **Other Examples of DSTs**
+1. **Trait Objects (`dyn Trait`)**  
+   Any `dyn Trait` is a DST because different structs implementing the trait can have different sizes.
+
+2. **Slices (`[T]`)**  
+   - An array like `[u8; 10]` has a known size.
+   - But `[u8]` (a slice) does **not** because it could have any length.
+
+   ✅ You must use a pointer:
+   ```rust
+   let slice: &[u8] = &[1, 2, 3, 4];  // ✅ Works!
+   ```
+
+3. **Strings (`str`)**  
+   - `"hello"` is a `&str`, but `str` alone is a DST.
+   - ✅ Use `&str` or `String`:
+     ```rust
+     let s: &str = "hello";  // ✅ Works!
+     let s: String = String::from("hello");  // ✅ Works!
+     ```
+
+---
+### 📌 **Summary**
+- **DSTs do not have a fixed size at compile time.**
+- **You must store them behind a pointer (`Box`, `&`, `Rc`, etc.).**
+- **Common DSTs:** `dyn Trait`, `[T]`, `str`.
+
+Let me know if you need further clarification! 🚀
+
 
