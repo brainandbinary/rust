@@ -533,3 +533,61 @@ async fn main() {
 - The error **`dyn CommonExamDAO` cannot be shared between threads safely** is resolved.
 - The DAO is now **both `Send` and `Sync`.**
 - Your code will **work perfectly with Axum and MongoDB.**
+
+
+No, the method `dao.get_exams(10)` is still **asynchronous**, not synchronous.
+
+---
+
+### 🎯 Why does Rust show this error?
+
+The error **`dyn CommonExamDAO cannot be shared between threads safely`** is not about whether the function is **synchronous or asynchronous**, but rather **about thread safety**.
+
+---
+
+### ✅ What's actually happening here:
+
+- Since you're using **`async_trait`**, Rust expects that **all methods inside the trait are `Send + Sync`** so that they can be awaited safely in multiple threads.
+
+- However, **MongoDB client (or other internal state inside DAO)** might not be **thread-safe**, which breaks this rule.
+
+---
+
+### 🚀 How `Send + Sync` resolves this issue?
+
+By adding **`Send + Sync`**, you're telling Rust:
+
+> "I guarantee that this trait can be safely shared across multiple threads."
+
+So, **`dao.get_exams(10).await` is still an asynchronous operation**, but now it can run inside a multi-threaded async runtime like `tokio`.
+
+---
+
+### ✅ Your current flow:
+
+| Method               | Synchronous or Asynchronous |
+|----------------|--------------------|
+| `dao.get_exams(10)`      | Asynchronous ✅ |
+| `.await`                  | Waits for the result of the async function |
+| `tokio::spawn()`        | Runs on a separate thread |
+
+---
+
+## 🎯 Quick Visual:
+
+```rust
+tokio::spawn(async move {
+    let exams = dao.get_exams(10).await;
+    println!("{:?}", exams);
+});
+```
+
+Here, **`dao.get_exams(10)` is running asynchronously in a separate thread.**
+
+---
+
+## ✅ Final Conclusion:
+
+- The error was not about being sync or async.
+- It was about **thread safety (`Send + Sync`)**, which is required for async execution across threads.
+- Your function remains **fully asynchronous** after fixing the error.
