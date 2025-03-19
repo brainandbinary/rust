@@ -448,4 +448,596 @@ String: Hello
 
 Let me know if you'd like to explore more advanced use cases! 😊
 
+_______________________________________________________________________________________________
+#Enum
+### **🔹 Understanding `enum` in Rust**  
+An `enum` (short for **enumeration**) in Rust is a **data type that allows you to define multiple related variants under a single type**. Enums are powerful because they enable **type-safe and expressive code**, often replacing the need for `match` statements or manually defined unions.
 
+---
+
+## **1️⃣ Defining an `enum`**
+An `enum` is defined using the `enum` keyword, followed by multiple variants.
+
+```rust
+enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+```
+Here, `Direction` has **four possible values** (`Up`, `Down`, `Left`, `Right`), and we can use them like this:
+
+```rust
+fn move_player(dir: Direction) {
+    match dir {
+        Direction::Up => println!("Moving Up"),
+        Direction::Down => println!("Moving Down"),
+        Direction::Left => println!("Moving Left"),
+        Direction::Right => println!("Moving Right"),
+    }
+}
+
+fn main() {
+    let direction = Direction::Up;
+    move_player(direction);
+}
+```
+
+---
+
+## **2️⃣ Enums with Data**
+Enums can store **different types of data** in each variant.
+
+```rust
+enum Message {
+    Text(String),
+    Move { x: i32, y: i32 },
+    Quit,
+}
+```
+- `Text(String)`: Holds a `String`
+- `Move { x: i32, y: i32 }`: Holds **named fields** like a struct
+- `Quit`: Has no data
+
+### **Using the Enum**
+```rust
+fn process_message(msg: Message) {
+    match msg {
+        Message::Text(content) => println!("Text message: {}", content),
+        Message::Move { x, y } => println!("Move to ({}, {})", x, y),
+        Message::Quit => println!("Quitting"),
+    }
+}
+
+fn main() {
+    let msg1 = Message::Text(String::from("Hello!"));
+    let msg2 = Message::Move { x: 10, y: 20 };
+    let msg3 = Message::Quit;
+
+    process_message(msg1);
+    process_message(msg2);
+    process_message(msg3);
+}
+```
+
+---
+
+## **3️⃣ Enum Methods (Adding Functions)**
+Enums can have **associated methods** using `impl`.
+
+```rust
+impl Direction {
+    fn print(&self) {
+        match self {
+            Direction::Up => println!("Going Up"),
+            Direction::Down => println!("Going Down"),
+            Direction::Left => println!("Going Left"),
+            Direction::Right => println!("Going Right"),
+        }
+    }
+}
+
+fn main() {
+    let dir = Direction::Left;
+    dir.print();
+}
+```
+
+---
+
+## **4️⃣ `Option<T>`: Built-in Enum for Handling Null**
+Rust doesn’t have `null`, but it has `Option<T>`, which is an `enum`:
+
+```rust
+enum Option<T> {
+    Some(T),
+    None,
+}
+```
+### **Using `Option<T>`**
+```rust
+fn divide(a: f64, b: f64) -> Option<f64> {
+    if b == 0.0 {
+        None
+    } else {
+        Some(a / b)
+    }
+}
+
+fn main() {
+    match divide(10.0, 2.0) {
+        Some(result) => println!("Result: {}", result),
+        None => println!("Cannot divide by zero!"),
+    }
+}
+```
+---
+
+## **5️⃣ `Result<T, E>`: Built-in Enum for Error Handling**
+Rust’s `Result<T, E>` is used for error handling.
+
+```rust
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+```
+### **Example: File Reading with `Result`**
+```rust
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_file() -> Result<String, io::Error> {
+    let mut file = File::open("test.txt")?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+    Ok(contents)
+}
+
+fn main() {
+    match read_file() {
+        Ok(content) => println!("File content: {}", content),
+        Err(e) => println!("Error: {}", e),
+    }
+}
+```
+---
+
+## **6️⃣ Pattern Matching with `match` and `if let`**
+`match` is the most common way to work with enums.
+
+```rust
+fn main() {
+    let direction = Direction::Right;
+
+    match direction {
+        Direction::Up => println!("Up"),
+        Direction::Down => println!("Down"),
+        Direction::Left => println!("Left"),
+        Direction::Right => println!("Right"),
+    }
+}
+```
+But if you only care about **one case**, use `if let`:
+
+```rust
+if let Direction::Up = direction {
+    println!("Going Up!");
+}
+```
+
+---
+
+## **🚀 Summary**
+✔ **Enums group related values together** (like `Direction`).  
+✔ **Variants can store different types of data** (like `Message::Move`).  
+✔ **Methods can be added** with `impl`.  
+✔ **`Option<T>` and `Result<T, E>` are powerful built-in enums**.  
+✔ **Use `match` or `if let` for pattern matching**.  
+
+Would you like examples with **trait implementations** or **more advanced enums**? 🚀
+
+
+
+Yes! In Rust, **enums can have values** (also called **payloads or associated data**). Each variant of an `enum` can store different types of data, just like structs.
+
+---
+
+## **🔹 Basic Enum with Values**
+You can define an `enum` where each variant holds different data types.
+
+```rust
+enum Status {
+    Success(i32),        // Holds an integer
+    Error(String),       // Holds a String
+    Loading,             // Holds no value
+}
+
+fn main() {
+    let s1 = Status::Success(200);
+    let s2 = Status::Error(String::from("Network failure"));
+    let s3 = Status::Loading;
+
+    match s1 {
+        Status::Success(code) => println!("Success with code: {}", code),
+        Status::Error(msg) => println!("Error: {}", msg),
+        Status::Loading => println!("Loading..."),
+    }
+}
+```
+
+### **Output**
+```
+Success with code: 200
+```
+
+---
+
+## **🔹 Enum with Struct-like Variants**
+Enums can store **named fields** like a struct.
+
+```rust
+enum Message {
+    Text { sender: String, content: String },
+    Move { x: i32, y: i32 },
+    Quit,
+}
+
+fn main() {
+    let msg = Message::Text {
+        sender: String::from("Alice"),
+        content: String::from("Hello!"),
+    };
+
+    match msg {
+        Message::Text { sender, content } => {
+            println!("From {}: {}", sender, content);
+        }
+        Message::Move { x, y } => println!("Move to ({}, {})", x, y),
+        Message::Quit => println!("Quitting..."),
+    }
+}
+```
+
+### **Output**
+```
+From Alice: Hello!
+```
+
+---
+
+## **🔹 Enum with Multiple Value Types**
+Each variant can have different types.
+
+```rust
+enum Data {
+    Number(i32),
+    Float(f64),
+    Text(String),
+}
+
+fn main() {
+    let data1 = Data::Number(42);
+    let data2 = Data::Float(3.14);
+    let data3 = Data::Text(String::from("Hello"));
+
+    match data1 {
+        Data::Number(n) => println!("Integer: {}", n),
+        Data::Float(f) => println!("Float: {}", f),
+        Data::Text(s) => println!("Text: {}", s),
+    }
+}
+```
+
+### **Output**
+```
+Integer: 42
+```
+
+---
+
+## **🔹 Using Enums with Methods**
+You can **attach methods** to an `enum` using `impl`.
+
+```rust
+enum Shape {
+    Circle(f64),  // Holds radius
+    Rectangle { width: f64, height: f64 },
+}
+
+impl Shape {
+    fn area(&self) -> f64 {
+        match self {
+            Shape::Circle(r) => std::f64::consts::PI * r * r,
+            Shape::Rectangle { width, height } => width * height,
+        }
+    }
+}
+
+fn main() {
+    let c = Shape::Circle(5.0);
+    let r = Shape::Rectangle { width: 10.0, height: 5.0 };
+
+    println!("Circle Area: {}", c.area());
+    println!("Rectangle Area: {}", r.area());
+}
+```
+
+### **Output**
+```
+Circle Area: 78.53981633974483
+Rectangle Area: 50.0
+```
+
+---
+
+## **🔹 Storing Enums in a Vector**
+Enums are useful when storing **different types of data** in a list.
+
+```rust
+enum Log {
+    Info(String),
+    Warning(String),
+    Error(String),
+}
+
+fn main() {
+    let logs = vec![
+        Log::Info("System started".to_string()),
+        Log::Warning("Low disk space".to_string()),
+        Log::Error("Crash detected".to_string()),
+    ];
+
+    for log in logs {
+        match log {
+            Log::Info(msg) => println!("INFO: {}", msg),
+            Log::Warning(msg) => println!("WARNING: {}", msg),
+            Log::Error(msg) => println!("ERROR: {}", msg),
+        }
+    }
+}
+```
+
+---
+
+## **🔹 Summary**
+✔ **Enums can store values (integers, strings, structs, etc.)**  
+✔ **Variants can hold different types of data**  
+✔ **Enums can have methods using `impl`**  
+✔ **Useful for pattern matching and structuring complex data**  
+
+Would you like an **advanced example** like using enums with traits or JSON serialization? 🚀
+
+
+Yes! In Rust, you can create an `enum` with associated values similar to **Scala's `Enumeration` with assigned integer values**.
+
+---
+
+## **🔹 Rust Equivalent of Scala's Enumeration**
+You can **manually assign integer values** to `enum` variants.
+
+```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GRESectionType {
+    VerbalFirst = 2,
+    VerbalSecond = 4,
+    QuantFirst = 3,
+    QuantSecond = 5,
+}
+
+fn main() {
+    let section = GRESectionType::VerbalFirst;
+    println!("GRE Section: {:?} = {}", section, section as i32);
+}
+```
+
+### **Output**
+```
+GRE Section: VerbalFirst = 2
+```
+
+🔹 **Rust allows explicit integer values for enum variants.**  
+🔹 **You can cast an enum to `i32` using `as i32`.**
+
+---
+
+## **🔹 Enum with Default Value**
+Since Rust enums don't support direct default values, you can implement the `Default` trait.
+
+```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GRESectionType {
+    VerbalFirst = 2,
+    VerbalSecond = 4,
+    QuantFirst = 3,
+    QuantSecond = 5,
+}
+
+impl Default for GRESectionType {
+    fn default() -> Self {
+        GRESectionType::VerbalFirst // Default to VERBAL_FIRST (2)
+    }
+}
+
+fn main() {
+    let default_section = GRESectionType::default();
+    println!("Default GRE Section: {:?} = {}", default_section, default_section as i32);
+}
+```
+
+### **Output**
+```
+Default GRE Section: VerbalFirst = 2
+```
+
+---
+
+## **🔹 Mapping Integer Values to Enum (Reverse Lookup)**
+To **convert an integer back to an `enum`**, you can use `match` or `From`/`TryFrom`.
+
+```rust
+use std::convert::TryFrom;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GRESectionType {
+    VerbalFirst = 2,
+    VerbalSecond = 4,
+    QuantFirst = 3,
+    QuantSecond = 5,
+}
+
+impl TryFrom<i32> for GRESectionType {
+    type Error = &'static str;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            2 => Ok(GRESectionType::VerbalFirst),
+            4 => Ok(GRESectionType::VerbalSecond),
+            3 => Ok(GRESectionType::QuantFirst),
+            5 => Ok(GRESectionType::QuantSecond),
+            _ => Err("Invalid GRE Section Type"),
+        }
+    }
+}
+
+fn main() {
+    let section = GRESectionType::try_from(3);
+    match section {
+        Ok(sec) => println!("Mapped GRE Section: {:?} = {}", sec, sec as i32),
+        Err(err) => println!("Error: {}", err),
+    }
+}
+```
+
+### **Output**
+```
+Mapped GRE Section: QuantFirst = 3
+```
+
+---
+
+## **🔹 Summary**
+✔ **Rust enums can have explicit integer values (`VerbalFirst = 2`).**  
+✔ **You can cast `enum` variants to `i32` using `as i32`.**  
+✔ **You can implement `Default` for an enum.**  
+✔ **You can convert `i32 -> Enum` using `TryFrom`.**  
+
+Would you like a **macro-based solution** to define enums with integer values more compactly? 🚀
+
+Yes, you can achieve this in Rust by defining an `enum` with explicitly assigned values and implementing an `id` method within the `impl` block. However, **Rust does not allow directly assigning values to enum variants** like in C or Scala. Instead, you must define the values manually inside the `impl` block.
+
+---
+
+### **✅ Correct Rust Code: Using `id` Method**
+```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GRESectionType {
+    VerbalFirst,
+    VerbalSecond,
+    QuantFirst,
+    QuantSecond,
+}
+
+impl GRESectionType {
+    pub fn id(&self) -> i8 {
+        match self {
+            GRESectionType::VerbalFirst => 2,
+            GRESectionType::VerbalSecond => 4,
+            GRESectionType::QuantFirst => 3,
+            GRESectionType::QuantSecond => 5,
+        }
+    }
+}
+
+fn main() {
+    let section = GRESectionType::VerbalFirst;
+    println!("GRE Section: {:?}, ID: {}", section, section.id());
+}
+```
+
+### **Output**
+```
+GRE Section: VerbalFirst, ID: 2
+```
+
+---
+
+## **🔹 Alternative: Using a Tuple Enum with Stored Values**
+If you want to **store values inside the enum itself**, you can use a **tuple enum**.
+
+```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GRESectionType {
+    VerbalFirst(i8),
+    VerbalSecond(i8),
+    QuantFirst(i8),
+    QuantSecond(i8),
+}
+
+impl GRESectionType {
+    pub fn id(&self) -> i8 {
+        match self {
+            GRESectionType::VerbalFirst(id)
+            | GRESectionType::VerbalSecond(id)
+            | GRESectionType::QuantFirst(id)
+            | GRESectionType::QuantSecond(id) => *id,
+        }
+    }
+}
+
+fn main() {
+    let section = GRESectionType::VerbalFirst(2);
+    println!("GRE Section: {:?}, ID: {}", section, section.id());
+}
+```
+
+### **Output**
+```
+GRE Section: VerbalFirst(2), ID: 2
+```
+
+---
+
+## **🔹 Alternative: Using `repr(i8)` for Direct Integer Casting**
+If your main goal is to store **integer values in the enum**, Rust provides `repr(i8)`, allowing **casting an enum variant to an integer**.
+
+```rust
+#[repr(i8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GRESectionType {
+    VerbalFirst = 2,
+    VerbalSecond = 4,
+    QuantFirst = 3,
+    QuantSecond = 5,
+}
+
+impl GRESectionType {
+    pub fn id(&self) -> i8 {
+        *self as i8
+    }
+}
+
+fn main() {
+    let section = GRESectionType::VerbalFirst;
+    println!("GRE Section: {:?}, ID: {}", section, section.id());
+}
+```
+
+### **Output**
+```
+GRE Section: VerbalFirst, ID: 2
+```
+
+---
+
+## **🔹 Which Method is Best?**
+| Method | Pros | Cons |
+|--------|------|------|
+| `match` method (first example) | Simple, no extra memory | Requires manual mapping |
+| Tuple Enum | Flexible, allows additional data | Verbose, extra memory for storage |
+| `repr(i8)` with `as i8` | Direct integer mapping, fastest | No runtime checks for invalid values |
+
+For **static integer mappings**, using `repr(i8)` is the cleanest and most efficient way. 🚀
+
+Would you like an **automatic macro solution** to generate this for multiple enums?
